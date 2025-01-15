@@ -16,6 +16,21 @@ int main()
         std::cout << "Успешно открыта БД " << std::endl;
     }
 
+
+
+
+    const char* sql = "SELECT username FROM Users;";
+    sqlite3_stmt* stmt;
+
+    rc = sqlite3_prepare_v2(db, sql, -1, &stmt, 0);
+
+    if (rc == SQLITE_OK) {
+        while ((rc = sqlite3_step(stmt)) == SQLITE_ROW) {
+            std::cout << "Имя: " << sqlite3_column_text(stmt, 0) << std::endl;
+        }
+        sqlite3_finalize(stmt);
+    }
+
     sqlite3_close(db);
 
     return 0;
