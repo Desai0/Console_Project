@@ -1,7 +1,7 @@
 ﻿#include <iostream>
 #include <windows.h>
 #include "sessions.h"
-#include <typeinfo>
+
 
 
 HANDLE console = GetStdHandle(STD_OUTPUT_HANDLE);
@@ -423,7 +423,7 @@ int main()
 
         bool attempt = attempt_log_in(user);
 
-        if (true) { // если данные правильны
+        if (attempt) { // если данные правильны
             system("cls");
             std::cout << "U logged in";
             Sleep(2000);
