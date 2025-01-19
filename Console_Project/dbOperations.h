@@ -39,8 +39,16 @@ enum Role
     User = 3
 };
 
+size_t hashing(std::string password) {
+    std::hash<std::string> hash_fn;
+    size_t hashed_password = hash_fn(password);
+    //std::cout << "Хэш пароля: " << hashed_password << std::endl; // это просто для проверки, можно удалить, оно работает
+    return hashed_password;
+}
+
 struct db {
 
+    bool open = false;
     sqlite3* base;
 
     void start_session(const char* file) {
@@ -53,19 +61,19 @@ struct db {
         }
         else {
             std::cout << "Data base was opened succesufully" << std::endl;
+            open = true;
         }
     }
 
-    std::vector<std::string> request_login(const char* name) {
+    std::vector<std::string> request_login(std::string name) {
         int out;
         std::string req = std::format("select * from users where login == '{}'", (name));
         sqlite3_stmt* statement;
         std::vector<std::string> vec = {};
         out = sqlite3_prepare_v2(base, req.c_str(), -1, &statement, 0);
         if (out == SQLITE_OK) {
-            std::cout << "Request complete" << std::endl;
             while ((out = sqlite3_step(statement) == SQLITE_ROW)) {
-                for (int i = 0; i < tableColumns-3; i++) {
+                for (int i = 0; i < tableColumns; i++) {
                     vec.push_back(std::string(reinterpret_cast<const char*>(sqlite3_column_text(statement, i))));
                 }
             }
@@ -92,6 +100,29 @@ struct db {
                   vec.push_back(push);
             }
             
+            sqlite3_finalize(statement);
+        }
+        else {
+            std::cerr << "Request error: " << sqlite3_errmsg(base) << std::endl;
+        }
+        return vec;
+    }
+
+    std::vector<std::vector<std::string>> request_users() {
+        int out;
+        std::string req = "select username, login from users where role_id = 3";
+        sqlite3_stmt* statement;
+        std::vector<std::vector<std::string>> vec = {};
+        out = sqlite3_prepare_v2(base, req.c_str(), -1, &statement, 0);
+        if (out == SQLITE_OK) {
+            std::cout << "Request complete" << std::endl;
+            while ((out = sqlite3_step(statement) == SQLITE_ROW)) {
+                std::vector<std::string> push = {};
+                push.push_back(std::string(reinterpret_cast<const char*>(sqlite3_column_text(statement, 0))));
+                push.push_back(std::string(reinterpret_cast<const char*>(sqlite3_column_text(statement, 1))));
+                vec.push_back(push);
+            }
+
             sqlite3_finalize(statement);
         }
         else {
@@ -145,6 +176,12 @@ struct db {
         sqlite3_finalize(statement);
     }
 
+    void cin_set_status(int user_id) {
+        int status;
+        std::cin >> status;
+        set_status(user_id, Status(status));
+    }
+
     void set_username(int user_id, std::string name) {
         std::string req = std::format("update users set username = '{}' where user_id = {}", name, user_id);
 
@@ -153,6 +190,12 @@ struct db {
         out = sqlite3_prepare_v2(base, req.c_str(), -1, &statement, 0);
         sqlite3_step(statement);
         sqlite3_finalize(statement);
+    }
+
+    void cin_set_username(int user_id) {
+        std::string name;
+        std::cin >> name;
+        set_username(user_id, name);
     }
 
     void set_login(int user_id, std::string login) {
@@ -165,6 +208,12 @@ struct db {
         sqlite3_finalize(statement);
     }
 
+    void cin_set_login(int user_id) {
+        std::string log;
+        std::cin >> log;
+        set_login(user_id, log);
+    }
+
     void set_mail(int user_id, std::string mail) {
         std::string req = std::format("update users set user_mail = '{}' where user_id = {}", mail, user_id);
 
@@ -175,14 +224,26 @@ struct db {
         sqlite3_finalize(statement);
     }
 
+    void cin_set_mail(int user_id) {
+        std::string mail;
+        std::cin >> mail;
+        set_mail(user_id, mail);
+    }
+
     void set_password(int user_id, std::string password) {
-        std::string req = std::format("update users set user_hashed_password = '{}' where user_id = {}", password, user_id);
+        std::string req = std::format("update users set user_hashed_password = '{}' where user_id = {}", std::to_string(hashing(password)), user_id);
 
         int out;
         sqlite3_stmt* statement;
         out = sqlite3_prepare_v2(base, req.c_str(), -1, &statement, 0);
         sqlite3_step(statement);
         sqlite3_finalize(statement);
+    }
+
+    void cin_set_password(int user_id) {
+        std::string pass;
+        std::cin >> pass;
+        set_password(user_id, pass);
     }
 
     void set_role(int user_id, Role role) {
@@ -214,6 +275,12 @@ struct db {
         sqlite3_finalize(statement);
     }
 
+    void cin_set_role(int user_id) {
+        int role;
+        std::cin >> role;
+        set_role(user_id, Role(role));
+    }
+
     std::string get_status_by_id(int id) {
         int out;
         std::string req = std::format("select live_status from users where user_id = {}", id);
@@ -226,9 +293,9 @@ struct db {
         sqlite3_finalize(statement);
     }
 
-    int get_id_by_login(const char* login) {
+    int get_id_by_login(std::string login) {
         int out;
-        std::string req = std::format("select user_id from users where login = 'altometer'", login);
+        std::string req = std::format("select user_id from users where login = '{}'", login);
         sqlite3_stmt* statement;
         out = sqlite3_prepare_v2(base, req.c_str(), -1, &statement, 0);
 
@@ -236,6 +303,20 @@ struct db {
             return sqlite3_column_int(statement, 0);
         }
         sqlite3_finalize(statement);
+    }
+
+    std::string get_password_by_login(std::string login) {
+        int out;
+        std::string req = std::format("select user_hashed_password from users where login = '{}'", login);
+        sqlite3_stmt* statement;
+        out = sqlite3_prepare_v2(base, req.c_str(), -1, &statement, 0);
+        
+        sqlite3_step(statement);
+        std::string pass = (std::string(reinterpret_cast<const char*>(sqlite3_column_text(statement, 0))));
+        
+        sqlite3_finalize(statement);
+
+        return pass;
     }
 
     void add_user(std::string username, std::string login, std::string mail, std::string hashPassword, Status liveStatus,  Role role) {
@@ -272,5 +353,6 @@ struct db {
 
     void end_session() {
         sqlite3_close(base);
+        open = false;
     }
 };
