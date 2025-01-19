@@ -4,6 +4,7 @@
 #include "sqlite3.h"
 #include <vector>
 #include <format>
+#include <chrono>
 
 int tableColumns = 7; //Костыль, Количество колонок в основной таблице
 
@@ -150,7 +151,7 @@ struct db {
     // TESTING
 
 
-
+   
 
     std::vector<std::vector<std::string>> request_users() {
         int out;
@@ -325,6 +326,7 @@ struct db {
         set_role(user_id, Role(role));
     }
 
+
     std::string get_status_by_id(int id) {
         int out;
         std::string req = std::format("select live_status from users where user_id = {}", id);
@@ -393,6 +395,87 @@ struct db {
         out = sqlite3_prepare_v2(base, req.c_str(), -1, &statement, 0);
         sqlite3_step(statement);
         sqlite3_finalize(statement);
+    }
+
+    void set_expiry(int id) {
+
+        auto nowe = std::chrono::system_clock::now();
+        auto nextWeek = nowe + std::chrono::hours(24 * 14);
+        std::time_t nextWeek_time_t = std::chrono::system_clock::to_time_t(nextWeek);
+
+        std::tm tim;
+        localtime_s(&tim, &nextWeek_time_t);
+
+        std::string cur;
+        cur.append(std::to_string(tim.tm_year+1900));
+        if (tim.tm_mon+1 < 10) cur.append("0");
+        cur.append(std::to_string(tim.tm_mon+1));
+        if (tim.tm_mday < 10) cur.append("0");
+        cur.append(std::to_string(tim.tm_mday));
+
+
+        int out;
+        std::string req = std::format("insert into expiry values({}, {})", id, cur);
+        sqlite3_stmt* statement;
+        out = sqlite3_prepare_v2(base, req.c_str(), -1, &statement, 0);
+
+        sqlite3_step(statement);
+        sqlite3_finalize(statement);
+    }
+
+    void delete_id(int id) {
+
+        int out;
+        std::string req = std::format("delete from users where user_id = {}", id);
+        sqlite3_stmt* statement;
+        out = sqlite3_prepare_v2(base, req.c_str(), -1, &statement, 0);
+
+        sqlite3_step(statement);
+        sqlite3_finalize(statement);
+        delete statement;
+
+        req = std::format("delete from expiry where user_id = {}", id);
+        sqlite3_stmt* statement1;
+        out = sqlite3_prepare_v2(base, req.c_str(), -1, &statement1, 0);
+
+        sqlite3_step(statement1);
+        sqlite3_finalize(statement1);
+        delete statement1;
+
+    }
+
+    void update_expiry() {
+
+        int out;
+        std::string req = "select * from expiry";
+        sqlite3_stmt* statement;
+        out = sqlite3_prepare_v2(base, req.c_str(), -1, &statement, 0);
+
+        std::vector<std::vector<int>> ids;
+
+        while ((out = sqlite3_step(statement) == SQLITE_ROW)) {
+            std::vector<int> push = {};
+            push.push_back(std::stoi(std::string(reinterpret_cast<const char*>(sqlite3_column_text(statement, 0)))));
+            push.push_back(std::stoi(std::string(reinterpret_cast<const char*>(sqlite3_column_text(statement, 1)))));
+
+            ids.push_back(push);
+        }
+
+
+        if (ids.size() > 0) {
+
+            time_t now = time(0);
+            std::tm tim;
+            localtime_s(&tim, &now);
+
+            int numericDate = tim.tm_mday + ((tim.tm_mon + 1) * 100) + ((tim.tm_year + 1900) * 10000);
+
+            for (std::vector<int> vec : ids) {
+                if (vec[1] <= numericDate) {
+                    delete_id(vec[0]);
+                }
+            }
+        }
     }
 
     void end_session() {

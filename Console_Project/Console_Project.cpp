@@ -236,6 +236,41 @@ void edit_a_guy(Session& user) {
     }
 }
 
+void delete_a_guy(Session& user) {
+    std::cout << "Marking user's profile for deletion\nPlease, enter user's login: ";
+
+    std::string log;
+    std::cin >> log;
+
+    int id = user.base.get_id_by_login(log);
+
+    std::vector<std::vector<std::string>> logins = user.base.request_names();
+
+    bool flag = false;
+    for (std::vector<std::string> vec : logins) {
+
+        if (vec[1] == log) {
+            flag = true;
+            break;
+        }
+    }
+    if (!flag) {
+        std::cout << "User not found" << std::endl;
+    }
+    else {
+        std::vector<std::string> edit = user.base.request_login(log);
+
+        if (user.rid >= 2 and std::stoi(edit[6]) <= 2) {
+            std::cout << "This user can not be edited" << std::endl;
+        }
+        else {
+            user.base.set_expiry(id);
+            std::cout << "User was marked for deletion, their account will be deleted in 14 days" << std::endl;
+        }
+    }
+
+}
+
 void interfac_user(Session& user) {
     std::cout << "Welcome, "
         << user.username
@@ -367,7 +402,7 @@ void interfac_manager(Session& user) {
         std::cout << "Sorry, your account is currently inactive. You can't perform actions on it" << std::endl;
         break;
     case Active:
-        std::cout << "0 - Cancel, 1 - Edit profile, 2 - Edit User, 3 - Add User\n";
+        std::cout << "0 - Cancel, 1 - Edit profile, 2 - Edit User, 3 - Add User, 4 - Mark user for deletion\n";
         std::cout << "Select an option to manage: ";
 
         int selector;
@@ -384,6 +419,11 @@ void interfac_manager(Session& user) {
             break;
         case 3:
             add_a_guy(user);
+            break;
+        case 4:
+            delete_a_guy(user);
+            Sleep(2000);
+
             break;
         default:
             std::cout << "Not an option, you are going to hell now";
@@ -412,9 +452,14 @@ void interfac(Session& user) {
     }
 }
 
+
+
+
 int main()
 {
     static Session user("database");
+
+    user.base.update_expiry();
 
     setlocale(LC_ALL, "");
     int number = 0; // просто хрень для хранения
