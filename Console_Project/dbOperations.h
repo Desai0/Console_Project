@@ -108,6 +108,50 @@ struct db {
         return vec;
     }
 
+
+    // TESTING
+    std::vector<std::vector<std::string>> request_user_details() {
+        int out;
+        std::string req = "select user_id, username, login, user_mail, live_status, role_id from users";
+        sqlite3_stmt* statement;
+        std::vector<std::vector<std::string>> vec = {};
+        out = sqlite3_prepare_v2(base, req.c_str(), -1, &statement, 0);
+        if (out == SQLITE_OK) {
+            /*std::cout << "Request complete" << std::endl;*/
+            while ((out = sqlite3_step(statement)) == SQLITE_ROW) {
+                std::vector<std::string> push = {};
+                push.push_back(std::string(reinterpret_cast<const char*>(sqlite3_column_text(statement, 0)))); // id
+                push.push_back(std::string(reinterpret_cast<const char*>(sqlite3_column_text(statement, 1)))); // username
+                push.push_back(std::string(reinterpret_cast<const char*>(sqlite3_column_text(statement, 2)))); // login
+                push.push_back(std::string(reinterpret_cast<const char*>(sqlite3_column_text(statement, 3)))); // mail
+                push.push_back(std::string(reinterpret_cast<const char*>(sqlite3_column_text(statement, 4)))); // live_status
+
+                // Предполагаем, что role_id может быть как текстом, так и числом.
+                // Если это точно число, используйте sqlite3_column_int
+                const unsigned char* role_id_text = sqlite3_column_text(statement, 5);
+                push.push_back(std::to_string(sqlite3_column_int(statement, 5)));
+                /*if (role_id_text) {
+                    push.push_back(std::string(reinterpret_cast<const char*>(role_id_text)));
+                }
+                else {
+                    push.push_back(std::to_string(sqlite3_column_int(statement, 5)));
+                }*/
+
+                vec.push_back(push);
+            }
+
+            sqlite3_finalize(statement);
+        }
+        else {
+            std::cerr << "Request error: " << sqlite3_errmsg(base) << std::endl;
+        }
+        return vec;
+    }
+    // TESTING
+
+
+
+
     std::vector<std::vector<std::string>> request_users() {
         int out;
         std::string req = "select username, login from users where role_id = 3";

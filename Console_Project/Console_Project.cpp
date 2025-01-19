@@ -49,7 +49,7 @@ void edit_profile(Session& user) {
     
     while (true)
     {
-        std::cout << "Select an attribute to edit"
+        std::cout << "Select an attribute to edit in your profile"
             << "\n"
             << "0 - Cancel\n"
             << "1 - Username\n"
@@ -99,50 +99,57 @@ void edit_profile(Session& user) {
 
 void add_a_guy(Session& user) { //prime json material
 
-    std::cout << "Adding a new user\n";
-    std::cout << "Enter username: ";
-    std::string name;
-    std::cin >> name;
-    
-    std::cout << "Enter login: ";
-    std::string log;
-    std::cin >> log;
-
-    std::cout << "Enter mail: ";
-    std::string mail;
-    std::cin >> mail;
-
-    std::cout << "Enter password: ";
-    std::string pass;
-    std::cin >> pass;
-
-
-
     int rid = 3;
 
-    if (user.rid == Administrator) {
+    if (user.rid == Administrator || user.rid == Manager) {
 
-        std::cout << "1 - Administartor, 2 - Manager, 3 - User\n";
-        std::cout << "Enter role id: ";
+        std::cout << "Adding a new user\n"; // перенес по требованиям
+        std::cout << "Enter username: ";
+        std::string name;
+        std::cin >> name;
 
-        while (true) {
-            std::cin >> rid;
+        std::cout << "Enter login: ";
+        std::string log;
+        std::cin >> log;
 
-            switch (rid)
-            {
-            case 1:
-            case 2:
-            case 3:
+        std::cout << "Enter mail: ";
+        std::string mail;
+        std::cin >> mail;
+
+        std::cout << "Enter password: ";
+        std::string pass;
+        std::cin >> pass;
+
+
+        if (user.rid == Administrator) {
+            std::cout << "1 - Administartor, 2 - Manager, 3 - User\n";
+            std::cout << "Enter role id: ";
+
+
+            while (true) {
+                std::cin >> rid;
+
+                switch (rid)
+                {
+                case 1:
+                case 2:
+                case 3:
+                    break;
+                default:
+                    std::cout << "\nRole id error, try again: " << std::endl;
+                    continue;
+                }
                 break;
-            default:
-                std::cout << "\nRole id error, try again: " << std::endl;
-                continue;
             }
-            break;
         }
+        
+
+        user.base.add_user(name, log, mail, std::to_string(hashing(pass)), Active, Role(rid));
+    }
+    else {
+        std::cout << "\nYou can't do this" << std::endl;
     }
     
-    user.base.add_user(name, log, mail, std::to_string(hashing(pass)), Active, Role(rid));
 }
 
 void edit_a_guy(Session& user) {
@@ -243,6 +250,46 @@ void interfac_user(Session& user) {
         << user.status
         << "\n\n";
 
+
+    ///test
+    std::cout << " _____________________________________________________________________________________________________________________________\n";
+    SetConsoleCursorPosition(console, { 0, 7 });
+    std::cout << "| user_id";
+    SetConsoleCursorPosition(console, { 10, 7 });
+    std::cout << "| username";
+    SetConsoleCursorPosition(console, { 38, 7 });
+    std::cout << "| login";
+    SetConsoleCursorPosition(console, { 56, 7 });
+    std::cout << "| user_mail";
+    SetConsoleCursorPosition(console, { 95, 7 });
+    std::cout << "| live_status";
+    SetConsoleCursorPosition(console, { 115, 7 });
+    std::cout << "| role_id |\n";
+
+    //
+
+    std::vector<std::vector<std::string>> user_data = user.base.request_user_details();
+
+    // Вывод полученных данных
+    for (const auto& user_info : user_data) {
+        std::string user_id_str = user_info[0];
+        int user_id_int = std::stoi(user_id_str);
+        SetConsoleCursorPosition(console, { 1, (static_cast<SHORT>(user_id_int + 8)) });
+        std::cout << user_info[0];
+        SetConsoleCursorPosition(console, { 11, (static_cast<SHORT>(user_id_int + 8)) });
+        std::cout << user_info[1];
+        SetConsoleCursorPosition(console, { 39, (static_cast<SHORT>(user_id_int + 8)) });
+        std::cout << user_info[2];
+        SetConsoleCursorPosition(console, { 57, (static_cast<SHORT>(user_id_int + 8)) });
+        std::cout << user_info[3];
+        SetConsoleCursorPosition(console, { 96, (static_cast<SHORT>(user_id_int + 8)) });
+        std::cout << user_info[4];
+        SetConsoleCursorPosition(console, { 116, (static_cast<SHORT>(user_id_int + 8)) });
+        std::cout << user_info[5] << "\n\n";
+    }
+    ///test
+
+
     switch (status_to_int(user.status)) {
     case Inactive:
         std::cout << "Sorry, your account is currently inactive. You can't edit it" << std::endl;
@@ -276,6 +323,45 @@ void interfac_manager(Session& user) {
         << user.status
         << "\n\n";
 
+/////////////////TESTING
+    std::cout << " _____________________________________________________________________________________________________________________________\n";
+    SetConsoleCursorPosition(console, { 0, 7 });
+    std::cout << "| user_id";
+    SetConsoleCursorPosition(console, { 10, 7 });
+    std::cout << "| username";
+    SetConsoleCursorPosition(console, { 38, 7 });
+    std::cout << "| login";
+    SetConsoleCursorPosition(console, { 56, 7 });
+    std::cout << "| user_mail";
+    SetConsoleCursorPosition(console, { 95, 7 });
+    std::cout << "| live_status";
+    SetConsoleCursorPosition(console, { 115, 7 });
+    std::cout << "| role_id |\n";
+
+    //
+
+    std::vector<std::vector<std::string>> user_data = user.base.request_user_details();
+
+    // Вывод полученных данных
+    for (const auto& user_info : user_data) {
+        std::string user_id_str = user_info[0];
+        int user_id_int = std::stoi(user_id_str);
+        SetConsoleCursorPosition(console, { 1, (static_cast<SHORT>(user_id_int + 8)) });
+        std::cout << user_info[0];
+        SetConsoleCursorPosition(console, { 11, (static_cast<SHORT>(user_id_int + 8)) });
+        std::cout << user_info[1];
+        SetConsoleCursorPosition(console, { 39, (static_cast<SHORT>(user_id_int + 8)) });
+        std::cout << user_info[2];
+        SetConsoleCursorPosition(console, { 57, (static_cast<SHORT>(user_id_int + 8)) });
+        std::cout << user_info[3];
+        SetConsoleCursorPosition(console, { 96, (static_cast<SHORT>(user_id_int + 8)) });
+        std::cout << user_info[4];
+        SetConsoleCursorPosition(console, { 116, (static_cast<SHORT>(user_id_int + 8)) });
+        std::cout << user_info[5] << "\n\n";
+    }
+/////////////////TESTING
+
+
     switch (status_to_int(user.status)) {
     case Inactive:
         std::cout << "Sorry, your account is currently inactive. You can't perform actions on it" << std::endl;
@@ -306,7 +392,7 @@ void interfac_manager(Session& user) {
         
         break;
     case Clarify:
-        std::cout << "Your account details must be clarified, please contact your manager" << std::endl;
+        std::cout << "Your account details must be clarified, please contact your administrator" << std::endl;
         add_a_guy(user);
         break;
     case Deleted:
