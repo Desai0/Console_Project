@@ -53,17 +53,36 @@ struct db {
     sqlite3* base;
 
     void start_session(const char* file) {
-
-        int out;
-        out = sqlite3_open(file, &base);
-
-        if (out) {
-            std::cerr << "Error: " << sqlite3_errmsg(base) << std::endl;
+        int out = sqlite3_open(file, &base);
+        if (out != SQLITE_OK) {
+            std::cerr << "Error opening database: " << sqlite3_errmsg(base) << std::endl;
+            exit(1);
         }
         else {
-            std::cout << "Data base was opened succesufully" << std::endl;
+            std::cout << "Data base was opened succesufully: " << file << std::endl;
             open = true;
+            sqlite3_stmt* stmt;
+            // Проверяем наличие таблицы users
+            if (sqlite3_prepare_v2(base, "SELECT name FROM sqlite_master WHERE type='table' AND name='Users';", -1, &stmt, nullptr) != SQLITE_OK || sqlite3_step(stmt) != SQLITE_ROW) {
+                std::cerr << "Error: Can't connect to DB." << std::endl;
+                sqlite3_finalize(stmt);
+                sqlite3_close(base);
+                exit(1);
+            }
+            sqlite3_finalize(stmt);
+            std::cout << "Database self-test passed." << std::endl;
         }
+    }
+
+
+    void delete_expiry(int id) {
+        int out;
+        std::string req = std::format("delete from expiry where user_id = {}", id);
+        sqlite3_stmt* statement;
+        out = sqlite3_prepare_v2(base, req.c_str(), -1, &statement, 0);
+
+        sqlite3_step(statement);
+        sqlite3_finalize(statement);
     }
 
     std::vector<std::string> request_login(std::string name) {

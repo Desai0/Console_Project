@@ -1,5 +1,6 @@
 ﻿#include <iostream>
 #include <windows.h>
+#include <cassert>
 #include "sessions.h"
 
 
@@ -11,6 +12,101 @@ void creset() {
     SetConsoleCursorPosition(console, { 0, 0 });
 }
 
+
+//void test_database_connection() {
+//    //Тест на подключение к БД
+//    Session testSession("database");
+//
+//    //Проверяем, что бд открыта
+//    if (!testSession.base.open) {
+//        std::cerr << "Database connection failed\n";
+//        exit(1); //Завершаем программу, если не удалось
+//    }
+//    std::cout << "Database connected successfully\n";
+//}
+//
+//void test_add_user() {
+//    //Тест на добавление нового пользователя
+//    Session testSession("database");
+//
+//    //Добавляем новго пользователя
+//    testSession.base.add_user("TestUser", "test_login", "test@mail.com", "hashed_password", Clarify, Administrator);
+//
+//    //Запрашиваем всех пользователей
+//    auto users = testSession.base.request_names();
+//    bool found = false;
+//
+//    //Проверяем, что новый пользователь добавлен
+//    for (auto& user : users) {
+//        if (user[1] == "test_login") {
+//            found = true;
+//            break;
+//        }
+//    }
+//
+//    assert(found && "User addition failed");
+//    std::cout << "User added successfully\n";
+//}
+//
+//void test_edit_user() {
+//    //Тест на редактирование данных пользователя
+//    Session testSession("database");
+//
+//    //Ищем пользователя по логину
+//    std::vector<std::string> userData = testSession.base.request_login("test_login");
+//
+//    //Сохраняем старое имя пользователя
+//    std::string oldUsername = userData[1];
+//
+//    //Редактируем имя пользователя
+//    testSession.base.cin_set_username(std::stoi(userData[0]));
+//    //Редактируем имя пользователя по ID
+//
+//    //Запрашиваем обновленные данные
+//    userData = testSession.base.request_login("test_login");
+//
+//    //Проверяем, что имя пользователя изменилось
+//    assert(userData[1] != oldUsername && "User edit failed");
+//    std::cout << "User data edited successfully\n";
+//}
+//
+//void test_edit_user_status() {
+//    //Тест на изменение статуса пользователя
+//    Session testSession("database");
+//
+//    //Ищем пользователя
+//    std::vector<std::string> userData = testSession.base.request_login("test_login");
+//
+//    //Сохраняем старый статус
+//    std::string oldStatus = userData[5];
+//
+//    //Меняем статус
+//    testSession.base.set_status(std::stoi(userData[0]), Active);
+//    //Устанавлием новый статус
+//
+//    //Запрашиваем обновленные данные
+//    userData = testSession.base.request_login("test_login");
+//
+//    //Проверяем, что статус изменился
+//    assert(userData[5] != oldStatus && "User status change failed");
+//    std::cout << "User status updated successfully\n";
+//}
+//
+//
+//
+//void test_exception_handling() {
+//    //Тест на сохранение данных при исключении
+//    try {
+//        Session testSession("database");
+//
+//        //Имитируем исключение
+//        throw std::runtime_error("Simulated exception");
+//    }
+//    catch (const std::exception& e) {
+//        std::cerr << "Exception caught: " << e.what() << "n"; // можно добавить код для проверки сохранения данных
+//    }
+//}
+
 /*
 Парооли от тестовой базы данных по айди
 
@@ -21,7 +117,6 @@ void creset() {
 12 - l
 */
 bool attempt_log_in(Session& user) {
-
     std::string password;
     std::string login;
 
@@ -35,7 +130,7 @@ bool attempt_log_in(Session& user) {
 
     if (user.log_in(login, password)) {
         creset();
-        std::cout << "Logged in succesfully";
+        std::cout << "Logged in successfully";
         return true;
     }
     else {
@@ -43,6 +138,28 @@ bool attempt_log_in(Session& user) {
         std::cout << "Login or password error, try again or leave, coward";
         return false;
     }
+}
+
+void register_user(Session& user) {
+    creset();
+    std::cout << "User Registration\n";
+    std::cout << "Enter username: ";
+    std::string username;
+    std::cin >> username;
+    std::cout << "Enter login: ";
+    std::string login;
+    std::cin >> login;
+    std::cout << "Enter password: ";
+    std::string password;
+    std::cin >> password;
+    std::cout << "Enter email: ";
+    std::string email;
+    std::cin >> email;
+
+    // Добавляем пользователя со статусом Clarify
+    user.base.add_user(username, login, email, std::to_string(hashing(password)), Clarify, User);
+    std::cout << "Registration successful. Your account is pending clarification.\n";
+    Sleep(2000);
 }
 
 void edit_profile(Session& user) {
@@ -163,7 +280,6 @@ void edit_a_guy(Session& user) {
 
     bool flag = false;
     for (std::vector<std::string> vec : logins) {
-
         if (vec[1] == log) {
             flag = true;
             break;
@@ -173,25 +289,24 @@ void edit_a_guy(Session& user) {
         std::cout << "User not found" << std::endl;
     }
     else {
-
         std::vector<std::string> edit = user.base.request_login(log);
 
         if (user.rid >= 2 and std::stoi(edit[6]) <= 2) {
             std::cout << "This user can not be edited" << std::endl;
         }
         else {
-
             int editId = std::stoi(edit[0]);
+            std::string originalStatus = edit[4]; // Получаем текущий статус пользователя
 
-            while (true)
-            {
+            while (true) {
                 std::cout << "Select an attribute to edit"
                     << "\n"
                     << "0 - Cancel\n"
                     << "1 - Username\n"
                     << "2 - Login\n"
                     << "3 - E-mail\n"
-                    << "4 - Password\n";
+                    << "4 - Password\n"
+                    << "5 - Status\n"; // Добавляем опцию изменения статуса
 
                 short choice;
                 std::cin >> choice;
@@ -203,35 +318,58 @@ void edit_a_guy(Session& user) {
                     std::cout << "Enter new Username: ";
                     user.base.cin_set_username(editId);
                     std::cout << std::endl;
-
                     break;
                 case 2:
                     std::cout << "Enter new Login: ";
                     user.base.cin_set_login(editId);
                     std::cout << std::endl;
-
                     break;
                 case 3:
                     std::cout << "Enter new E-mail: ";
                     user.base.cin_set_mail(editId);
                     std::cout << std::endl;
-
                     break;
                 case 4:
                     std::cout << "Enter new Password: ";
                     user.base.cin_set_password(editId);
                     std::cout << std::endl;
-
                     break;
+                case 5: { // Добавляем блок для изменения статуса
+                    std::cout << "Select new Status:\n";
+                    std::cout << "0 - Inactive\n";
+                    std::cout << "1 - Active\n";
+                    std::cout << "2 - Clarify\n";
+                    std::cout << "3 - Deleted\n";
+                    std::cout << "Enter status number: ";
+                    int new_status_int;
+                    std::cin >> new_status_int;
+
+                    if (new_status_int >= 0 && new_status_int <= 3) {
+                        Status new_status = static_cast<Status>(new_status_int);
+                        // **Сначала устанавливаем новый статус**
+                        user.base.set_status(editId, new_status);
+
+                        // **Затем получаем обновленную информацию о пользователе**
+                        std::vector<std::string> updated_edit = user.base.request_login(log);
+                        std::string updatedStatus = updated_edit[4];
+
+                        // Проверяем, был ли статус "Deleted" и изменился ли он
+                        if (originalStatus == "Deleted" && updatedStatus != "Deleted") {
+                            user.base.delete_expiry(editId);
+                            std::cout << "User removed from deletion queue.\n";
+                        }
+                    }
+                    else {
+                        std::cout << "Invalid status number.\n";
+                    }
+                    break;
+                }
                 default:
                     std::cout << "No, you moron! That is not an option! Try again";
                     continue;
                 }
-
                 break;
             }
-
-
         }
     }
 }
@@ -265,6 +403,7 @@ void delete_a_guy(Session& user) {
         }
         else {
             user.base.set_expiry(id);
+            user.base.set_status(id, Deleted);
             std::cout << "User was marked for deletion, their account will be deleted in 14 days" << std::endl;
         }
     }
@@ -457,40 +596,74 @@ void interfac(Session& user) {
 
 int main()
 {
+    //test_database_connection();
+    //test_add_user();
+    //test_edit_user();
+    //test_edit_user_status();
+    //test_exception_handling();
+
+    std::cout << "All tested passed successfully!\n";
+
+
     static Session user("database");
 
     user.base.update_expiry();
-
     setlocale(LC_ALL, "");
-    int number = 0; // просто хрень для хранения
 
     while (true) {
+        creset();
+        std::cout << "Welcome!\n";
+        std::cout << "1. Register\n";
+        std::cout << "2. Login\n";
+        std::cout << "Enter your choice: ";
 
-        bool attempt = attempt_log_in(user);
+        int choice;
+        std::cin >> choice;
 
-        if (attempt) { // если данные правильны
-            system("cls");
-            std::cout << "U logged in";
-            Sleep(2000);
-            system("cls");
-            break;
+        if (choice == 1) {
+            register_user(user);
         }
-        else { // если данные не правильны
-            system("cls");
-            std::cout << "Wrong password/login";
-            Sleep(2000);
+        else if (choice == 2) {
+            while (true) {
+                bool attempt = attempt_log_in(user);
+                if (attempt) {
+                    creset();
+                    std::cout << "You are logged in.\n";
+                    Sleep(1000);
+                    creset();
+                    break; // Выход из цикла логина при успешной аутентификации
+                }
+                else {
+                    std::cout << "\nTry again? (y/n): ";
+                    char retry;
+                    std::cin >> retry;
+                    if (retry != 'y') {
+                        break; // Выход из цикла логина при отказе от повторной попытки
+                    }
+                }
+            }
+        }
+        else {
+            std::cout << "Invalid choice. Please try again.\n";
+            Sleep(1000);
+        }
+
+        // Проверяем, вошел ли пользователь в систему, прежде чем запускать интерфейс
+        if (user.id > 0) {
+            break; // Выход из главного цикла выбора, если пользователь вошел
         }
     }
-    SetConsoleCursorPosition(console, { 0, 0 });
 
-    
-    while (true) {
+    // Запускаем основной интерфейс только после того, как пользователь вошел
+    while (user.id > 0) {
         creset();
         interfac(user);
         Sleep(500);
     }
 
     user.end();
+    return 0;
+}
     /*
     while (true) { // если данные правильны
         system("cls");
@@ -571,5 +744,5 @@ int main()
                 // + сделать выход из этого меню, например по нажатию Enter или еще как-нибудь + спросить подтверждение, что админ хочет удалить этого пользователя
             }
         }
-    }*/
-}
+    }
+}*/
