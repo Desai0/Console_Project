@@ -1,6 +1,11 @@
-﻿#include <iostream>
+﻿#define _CRT_SECURE_NO_WARNINGS
+#include <iostream>
 #include <windows.h>
 #include <cassert>
+#include <fstream>
+#include <ctime>
+#include <string>
+#include <iomanip>
 #include "sessions.h"
 
 
@@ -116,6 +121,45 @@ void creset() {
 11 я забыл лмао
 12 - l
 */
+tm* get_local_time(time_t* timer) { // Функция-обертка
+    return localtime(timer);
+}
+
+void log_failed_attempt(const std::string& type, const std::string& details) {
+    std::ofstream log_file("crash_log.txt", std::ios::app);
+    if (log_file.is_open()) {
+        time_t now = time(0);
+        tm* ltm_ptr = get_local_time(&now); // Используем обертку
+        if (ltm_ptr != nullptr) {
+            tm ltm = *ltm_ptr; // Копируем структуру
+            int year_численный = ltm.tm_year + 1900;
+            int month_численный = ltm.tm_mon + 1;
+            int day_численный = ltm.tm_mday;
+            int hour_численный = ltm.tm_hour;
+            int minute_численный = ltm.tm_min;
+            int second_численный = ltm.tm_sec;
+
+            log_file << "["
+                << std::setw(4) << std::setfill('0') << year_численный << "-"
+                << std::setw(2) << std::setfill('0') << month_численный << "-"
+                << std::setw(2) << std::setfill('0') << day_численный << " "
+                << std::setw(2) << std::setfill('0') << hour_численный << ":"
+                << std::setw(2) << std::setfill('0') << minute_численный << ":"
+                << std::setw(2) << std::setfill('0') << second_численный << "] ";
+            log_file << "Type: " << type << ", Details: " << details << std::endl;
+        }
+        else {
+            log_file << "[Ошибка времени] ";
+            log_file << "Type: " << type << ", Details: " << details << std::endl;
+        }
+        log_file.close();
+    }
+    else {
+        std::cerr << "Не удалось открыть файл crash_log.txt для записи." << std::endl;
+    }
+}
+
+
 bool attempt_log_in(Session& user) {
     std::string password;
     std::string login;
@@ -128,14 +172,27 @@ bool attempt_log_in(Session& user) {
     SetConsoleCursorPosition(console, { 16, 1 });
     std::cin >> password;
 
-    if (user.log_in(login, password)) {
-        creset();
-        std::cout << "Logged in successfully";
-        return true;
+    // Записываем данные перед попыткой входа
+    log_failed_attempt("Login Attempt", "Login: " + login + ", Password (raw): " + password); // Внимание: в реальном приложении пароль нужно хэшировать перед записью
+
+    try {
+        if (user.log_in(login, password)) {
+            creset();
+            std::cout << "Logged in successfully";
+            // Очищаем лог-файл при успешном входе (можно убрать, если хотите сохранять все попытки)
+            std::ofstream log_file("crash_log.txt", std::ios::trunc);
+            return true;
+        }
+        else {
+            creset();
+            std::cout << "Login or password error, try again or leave, coward";
+            return false;
+        }
     }
-    else {
+    catch (const std::exception& e) {
+        log_failed_attempt("Login Error", "Exception: " + std::string(e.what()) + ", Login: " + login);
         creset();
-        std::cout << "Login or password error, try again or leave, coward";
+        std::cerr << "An error occurred during login: " << e.what() << std::endl;
         return false;
     }
 }
@@ -156,10 +213,23 @@ void register_user(Session& user) {
     std::string email;
     std::cin >> email;
 
-    // Добавляем пользователя со статусом Clarify
-    user.base.add_user(username, login, email, std::to_string(hashing(password)), Clarify, User);
-    std::cout << "Registration successful. Your account is pending clarification.\n";
-    Sleep(2000);
+    // Записываем данные перед регистрацией
+    log_failed_attempt("Registration Attempt", "Username: " + username + ", Login: " + login + ", Password (raw): " + password + ", Email: " + email); // Внимание: пароль нужно хэшировать
+
+    try {
+        // Добавляем пользователя со статусом Clarify
+        user.base.add_user(username, login, email, std::to_string(hashing(password)), Clarify, User);
+        std::cout << "Registration successful. Your account is pending clarification.\n";
+        // Очищаем лог-файл при успешной регистрации
+        std::ofstream log_file("crash_log.txt", std::ios::trunc);
+        Sleep(2000);
+    }
+    catch (const std::exception& e) {
+        log_failed_attempt("Registration Error", "Exception: " + std::string(e.what()) + ", Username: " + username + ", Login: " + login);
+        creset();
+        std::cerr << "An error occurred during registration: " << e.what() << std::endl;
+        Sleep(2000);
+    }
 }
 
 void edit_profile(Session& user) {

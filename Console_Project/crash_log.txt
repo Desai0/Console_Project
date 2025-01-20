@@ -1,0 +1,1 @@
+[2025-01-20 10:25:25] Type: Login Attempt, Details: Login: 123123, Password (raw): awd
